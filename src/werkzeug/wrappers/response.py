@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import typing as t
 from http import HTTPStatus
-from urllib.parse import urljoin
 
 from ..datastructures import Headers
 from ..http import remove_entity_headers
@@ -11,8 +10,8 @@ from ..sansio.response import Response as _SansIOResponse
 from ..urls import _invalid_iri_to_uri
 from ..urls import iri_to_uri
 from ..utils import cached_property
+from ..utils import resolve_location
 from ..wsgi import ClosingIterator
-from ..wsgi import get_current_url
 from werkzeug._internal import _get_environ
 from werkzeug.http import generate_etag
 from werkzeug.http import http_date
@@ -484,9 +483,7 @@ class Response(_SansIOResponse):
 
             if self.autocorrect_location_header:
                 # Make the location header an absolute URL.
-                current_url = get_current_url(environ, strip_querystring=True)
-                current_url = iri_to_uri(current_url)
-                location = urljoin(current_url, location)
+                location = resolve_location(environ, location)
 
             headers["Location"] = location
 

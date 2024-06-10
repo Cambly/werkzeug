@@ -42,6 +42,7 @@ from .urls import _urlencode
 from .urls import iri_to_uri
 from .utils import cached_property
 from .utils import get_content_type
+from .utils import resolve_location
 from .wrappers.request import Request
 from .wrappers.response import Response
 from .wsgi import ClosingIterator
@@ -1081,9 +1082,12 @@ class Client:
 
         :meta private:
         """
-        scheme, netloc, path, qs, anchor = urlsplit(response.location)
+        request_environ = response.request.environ
+        absolute_location = resolve_location(request_environ, response.location)
+
+        scheme, netloc, path, qs, anchor = urlsplit(absolute_location)
         builder = EnvironBuilder.from_environ(
-            response.request.environ, path=path, query_string=qs
+            request_environ, path=path, query_string=qs
         )
 
         to_name_parts = netloc.split(":", 1)[0].split(".")

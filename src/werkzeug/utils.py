@@ -11,6 +11,7 @@ import unicodedata
 from datetime import datetime
 from time import time
 from urllib.parse import quote
+from urllib.parse import urljoin
 from zlib import adler32
 
 from markupsafe import escape
@@ -22,6 +23,8 @@ from .datastructures import Headers
 from .exceptions import NotFound
 from .exceptions import RequestedRangeNotSatisfiable
 from .security import safe_join
+from .urls import iri_to_uri
+from .wsgi import get_current_url
 from .wsgi import wrap_file
 
 if t.TYPE_CHECKING:
@@ -688,3 +691,9 @@ class ImportStringError(ImportError):
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}({self.import_name!r}, {self.exception!r})>"
+
+
+def resolve_location(environ: WSGIEnvironment, location: str) -> str:
+    current_url = get_current_url(environ, strip_querystring=True)
+    current_url = iri_to_uri(current_url)
+    return urljoin(current_url, location)
