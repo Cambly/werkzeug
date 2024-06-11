@@ -536,19 +536,84 @@ def test_follow_redirect_loop():
         c.get("/", follow_redirects=True)
 
 
-def test_follow_redirect_non_root_base_url():
+@pytest.mark.parametrize(
+    "redirect_path,base_url,path,expected_path,expected_url",
+    (
+        # non-root relative redirect paths depend on path prefix from base_url
+        # and request path.
+        (
+            "done",
+            "http://localhost",
+            "/redirect",
+            "/done",
+            "http://localhost/done",
+        ),
+        (
+            "done",
+            "http://localhost",
+            "/a/b/redirect",
+            "/a/b/done",
+            "http://localhost/a/b/done",
+        ),
+        (
+            "done",
+            "http://localhost/other",
+            "/redirect",
+            "/done",
+            "http://localhost/other/done",
+        ),
+        (
+            "done",
+            "http://localhost/other",
+            "/a/b/redirect",
+            "/a/b/done",
+            "http://localhost/other/a/b/done",
+        ),
+        # root relative redirect paths do not depend on other path components.
+        (
+            "/done",
+            "http://localhost",
+            "/redirect",
+            "/done",
+            "http://localhost/done",
+        ),
+        (
+            "/done",
+            "http://localhost",
+            "/a/b/redirect",
+            "/done",
+            "http://localhost/done",
+        ),
+        (
+            "/done",
+            "http://localhost/other",
+            "/redirect",
+            "/done",
+            "http://localhost/done",
+        ),
+        (
+            "/done",
+            "http://localhost/other",
+            "/a/b/redirect",
+            "/done",
+            "http://localhost/done",
+        ),
+    ),
+)
+def test_follow_redirect_path_and_url_resolution(
+    redirect_path, base_url, path, expected_path, expected_url
+):
     @Request.application
     def app(request):
-        if request.path == "/redirect":
-            return redirect("done")
+        if request.path.endswith("/redirect"):
+            return redirect(redirect_path)
 
         return Response(request.path)
 
     c = Client(app)
-    response = c.get(
-        "/redirect", base_url="http://localhost/other", follow_redirects=True
-    )
-    assert response.text == "/done"
+    response = c.get(path, base_url=base_url, follow_redirects=True)
+    assert response.text == expected_path
+    assert response.request.url == expected_url
 
 
 def test_follow_redirect_exhaust_intermediate():
